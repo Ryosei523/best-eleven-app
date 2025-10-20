@@ -1,0 +1,15 @@
+{
+    "japan_national_team": [
+    { "name": "鈴木彩艶", "position": "GK", "photo_url": "ここに写真のURL" },
+    { "name": "板倉滉", "position": "DF", "photo_url": "ここに写真のURL" },
+    { "name": "遠藤航", "position": "MF", "photo_url": "ここに写真のURL" },
+    { "name": "久保建英", "position": "MF", "photo_url": "ここに写真のURL" },
+    { "name": "上田綺世", "position": "FW", "photo_url": "ここに写真のURL" }
+    ],
+    "nagoya_grampus": [
+    { "name": "ランゲラック", "position": "GK", "photo_url": "ここに写真のURL" },
+    { "name": "井上詩音", "position": "DF", "photo_url": "ここに写真のURL" },
+    { "name": "稲垣祥", "position": "MF", "photo_url": "ここに写真のURL" },
+    { "name": "永井謙佑", "position": "FW", "photo_url": "ここに写真のURL" }
+    ]
+}
