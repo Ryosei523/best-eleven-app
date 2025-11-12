@@ -3,69 +3,120 @@
 <head>
     <meta charset="UTF-8">
     <title>ベストイレブンを作ろう！</title>
-    <style>
-    body { font-family: sans-serif; text-align: center; }
-    #app { max-width: 600px; margin: 2rem auto; }
-
+<style>
+    body { font-family: sans-serif; text-align: center; color: white; background-color: #333;}
+    #app { max-width: 700px; margin: 2rem auto; border: 1px solid #555; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.5);}
     #pitch {
-      background-color: #28a745; /* 緑色 */
+        background-color: #28a745;
         border: 2px solid #fff;
         padding: 20px;
         margin-top: 2rem;
+        border-radius: 8px;
     }
     .row {
         display: flex;
         justify-content: center;
         margin-bottom: 20px;
     }
+
+
     .player-slot {
-        width: 80px;
-        height: 80px;
+        width: 90px;
+        height: 110px;
         background-color: rgba(255, 255, 255, 0.2);
         border: 1px dashed #fff;
-        border-radius: 50%; /* 円形にする */
-        color: #fff;
-        display: flex;
-        justify-content: center;
-        align-items: center;
+      border-radius: 10%; /* 枠を円形に */
         margin: 0 10px;
         font-weight: bold;
-    }
-    .player-slot {
-    /* ... (中略) ... */
-    margin: 0 10px;
-    font-weight: bold;
-    /* ↓ 画像がきれいに収まるようにpaddingを0にする */
-    padding: 0; 
+        font-size: 0.7rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+
+        display: flex;
+        flex-direction: column; /* 縦並び */
+        justify-content: center; /* 中央揃え */
+        align-items: center;
+        
+        position: relative; /* 念のため残す */
+        overflow: hidden;
     }
 
-  /* ↓ 新しく追加する画像用のスタイル */
-    .player-img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover; /* 画像の比率を保ったまま枠に収める */
-    border-radius: 50%; /* 画像自体も円形にする */
+    #amf-left {
+        margin-right: 60px; 
     }
+    #amf-right {
+        margin-left: 60px; 
+    }
+    .player-slot:hover:not(.confirmed) {
+        background-color: rgba(255, 255, 255, 0.4);
+    }
+    .player-slot.confirmed {
+        background-color: rgba(0, 100, 0, 0.7);
+        border: 2px solid gold;
+    }
+
+    /* 選手画像（.player-img）のスタイル */
+    .player-img {
+      width: 100%; /* 枠いっぱいの 80px に */
+      height: 80%; /* 枠いっぱいの 80px に */
+        object-fit: cover;
+        border-radius: 8px;
+        pointer-events: none;
+    }
+
+/* 選手名（.player-name-display）のスタイル */
+    .player-name-display {
+      /* 重ねる設定(position: absolute)を削除 */
+      position: static; /* 通常の並び順に戻す */
+        text-align: center;
+        font-size: 0.7rem;
+        color: white;
+      /* 重ねないので背景色は不要 */
+        background-color: transparent; 
+        padding: 2px 0;
+        pointer-events: none;
+      /* 画像との間に隙間を空ける */
+        margin-top: 5px; 
+      /* 名前がはみ出ないように調整 */
+        width: 100%;
+        line-height: 1.2;
+    }
+    /* ( ... #spin-button などのスタイルはそのまま ... ) */
+    #spin-button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            transition: background-color 0.3s ease;
+        }
+        #spin-button:hover:not(:disabled) {
+            background-color: #0056b3;
+        }
+        #spin-button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
     </style>
-</head>
-<body>
+    </style></head><body>
     <div id="app">
     <h1>ベストイレブンを作ろう！</h1>
-    <p>好きなチームを選んで、自分だけの最強チームを完成させよう。</p>
+    <p>11個の枠が同時にルーレット！最高の1人を選び続けよう。</p>
 
-    <div id="team-selector">
-        </div>
-
-    <div id="pitch" style="display: none;">
+<div id="pitch">
         <div class="row">
-        <div class="player-slot" id="fw-left">FW</div>
         <div class="player-slot" id="fw-center">FW</div>
-        <div class="player-slot" id="fw-right">FW</div>
         </div>
         <div class="row">
-        <div class="player-slot" id="mf-left">MF</div>
-        <div class="player-slot" id="mf-center">MF</div>
-        <div class="player-slot" id="mf-right">MF</div>
+        <div class="player-slot" id="amf-left">AMF</div>
+        <div class="player-slot" id="amf-center">AMF</div>
+        <div class="player-slot" id="amf-right">AMF</div>
+        </div>
+        <div class="row">
+        <div class="player-slot" id="dmf-left">DMF</div>
+        <div class="player-slot" id="dmf-right">DMF</div>
         </div>
         <div class="row">
         <div class="player-slot" id="df-left">DF</div>
@@ -76,14 +127,12 @@
         <div class="row">
         <div class="player-slot" id="gk">GK</div>
         </div>
-        <div id="slot-machine" style="display: none; margin-top: 20px;">
-        <div id="player-display" style="font-size: 2rem; color: white; font-weight: bold; margin-bottom: 1rem;">
-            ここに選手名
-        </div>
-        <button id="decide-button">この選手に決定</button>
-        </div>
+    </div>    
+    <div id="game-controls" style="margin-top: 2rem;">
+        <button id="spin-button" style="width: 100%; padding: 1rem; font-size: 1.2rem;" disabled>
+        選手データを読み込み中...
+        </button>
+    </div>
 
-    </div>
-    </div>
-    <script src="script.js"></script>
+    </div> <script src="script.js"></script>
 </body>
