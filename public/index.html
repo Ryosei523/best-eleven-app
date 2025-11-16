@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>ベストイレブンを作ろう！</title>
-<style>
+    <style>
     body { font-family: sans-serif; text-align: center; color: white; background-color: #333;}
     #app { max-width: 700px; margin: 2rem auto; border: 1px solid #555; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.5);}
     #pitch {
@@ -19,25 +19,22 @@
         margin-bottom: 20px;
     }
 
-
     .player-slot {
         width: 90px;
         height: 110px;
         background-color: rgba(255, 255, 255, 0.2);
         border: 1px dashed #fff;
-      border-radius: 10%; /* 枠を円形に */
+        border-radius: 10px; /* 枠を角丸に変更 */
         margin: 0 10px;
         font-weight: bold;
         font-size: 0.7rem;
         cursor: pointer;
         transition: all 0.3s ease;
-
         display: flex;
         flex-direction: column; /* 縦並び */
         justify-content: center; /* 中央揃え */
         align-items: center;
-        
-        position: relative; /* 念のため残す */
+        position: relative;
         overflow: hidden;
     }
 
@@ -57,82 +54,128 @@
 
     /* 選手画像（.player-img）のスタイル */
     .player-img {
-      width: 100%; /* 枠いっぱいの 80px に */
-      height: 80%; /* 枠いっぱいの 80px に */
+        width: 100%;
+        height: 80%;
         object-fit: cover;
         border-radius: 8px;
         pointer-events: none;
     }
 
-/* 選手名（.player-name-display）のスタイル */
+    /* 選手名（.player-name-display）のスタイル */
     .player-name-display {
-      /* 重ねる設定(position: absolute)を削除 */
-      position: static; /* 通常の並び順に戻す */
+        position: static; /* 通常の並び順に戻す */
         text-align: center;
         font-size: 0.7rem;
         color: white;
-      /* 重ねないので背景色は不要 */
         background-color: transparent; 
         padding: 2px 0;
         pointer-events: none;
-      /* 画像との間に隙間を空ける */
         margin-top: 5px; 
-      /* 名前がはみ出ないように調整 */
         width: 100%;
         line-height: 1.2;
     }
-    /* ( ... #spin-button などのスタイルはそのまま ... ) */
+    
     #spin-button {
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            padding: 10px 20px;
-            cursor: pointer;
-            font-size: 1.1rem;
-            transition: background-color 0.3s ease;
-        }
-        #spin-button:hover:not(:disabled) {
-            background-color: #0056b3;
-        }
-        #spin-button:disabled {
-            background-color: #6c757d;
-            cursor: not-allowed;
-        }
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        padding: 10px 20px;
+        cursor: pointer;
+        font-size: 1.1rem;
+        transition: background-color 0.3s ease;
+    }
+    #spin-button:hover:not(:disabled) {
+        background-color: #0056b3;
+    }
+    #spin-button:disabled {
+        background-color: #6c757d;
+        cursor: not-allowed;
+    }
     </style>
-    </style></head><body>
+</head>
+
+<body>
     <div id="app">
     <h1>ベストイレブンを作ろう！</h1>
+    
+    <!-- ▼▼▼ ログインフォーム ▼▼▼ -->
+    <div id="auth-container" style="background-color: #f4f4f4; padding: 15px; border-radius: 8px; margin-bottom: 20px; color: #333;">
+        
+        <!-- 新規登録 -->
+        <div style="margin-bottom: 15px;">
+        <h3>新規登録</h3>
+        <input type="text" id="register-username" placeholder="ユーザー名" style="padding: 5px;">
+        <input type="password" id="register-password" placeholder="パスワード" style="padding: 5px;">
+        <button id="register-button">登録</button>
+        </div>
+        
+        <!-- ログイン -->
+        <div>
+        <h3>ログイン</h3>
+        <input type="text" id="login-username" placeholder="ユーザー名" style="padding: 5px;">
+        <input type="password" id="login-password" placeholder="パスワード" style="padding: 5px;">
+        <button id="login-button">ログイン</button>
+        </div>
+
+        <!-- メッセージ表示欄 -->
+        <p id="auth-message" style="font-weight: bold; color: blue;"></p>
+
+    </div> <!-- ★★★ auth-container は「ここで」閉じます ★★★ -->
+    
+    <!-- ▼▼▼ マイページ機能（auth-containerの外に出しました） ▼▼▼ -->
+    <button id="my-page-button" style="display: none; padding: 10px; background-color: #17a2b8; color: white; border: none; border-radius: 5px; cursor: pointer; margin-bottom: 15px;">
+        マイページを開く
+    </button>
+    <div id="my-teams-container" style="color: #333; background-color: #f9f9f9; padding: 10px; margin-top: 15px; border-radius: 8px;">
+        <!-- ここに保存したチーム一覧が表示されます -->
+    </div>
+    
+    <hr>
     <p>11個の枠が同時にルーレット！最高の1人を選び続けよう。</p>
 
-<div id="pitch">
+    <!-- ピッチ -->
+    <div id="pitch">
+        <!-- FW -->
         <div class="row">
         <div class="player-slot" id="fw-center">FW</div>
         </div>
+        <!-- AMF -->
         <div class="row">
         <div class="player-slot" id="amf-left">AMF</div>
         <div class="player-slot" id="amf-center">AMF</div>
         <div class="player-slot" id="amf-right">AMF</div>
         </div>
+        <!-- DMF -->
         <div class="row">
         <div class="player-slot" id="dmf-left">DMF</div>
         <div class="player-slot" id="dmf-right">DMF</div>
         </div>
+        <!-- DF -->
         <div class="row">
         <div class="player-slot" id="df-left">DF</div>
         <div class="player-slot" id="df-center-left">DF</div>
         <div class="player-slot" id="df-center-right">DF</div>
         <div class="player-slot" id="df-right">DF</div>
         </div>
+        <!-- GK -->
         <div class="row">
         <div class="player-slot" id="gk">GK</div>
         </div>
-    </div>    
+    </div> 
+    
+    <!-- ゲームコントローラー -->
     <div id="game-controls" style="margin-top: 2rem;">
         <button id="spin-button" style="width: 100%; padding: 1rem; font-size: 1.2rem;" disabled>
         選手データを読み込み中...
         </button>
+        <button id="save-team-button" style="width: 100%; padding: 10px; margin-top: 10px; background-color: #28a745; color: white; display: none;">
+        このチームを保存する
+        </button>
     </div>
 
-    </div> <script src="script.js"></script>
+    </div> <!-- id="app" の閉じタグ -->
+    
+    <script src="script.js"></script>
 </body>
+</html>
