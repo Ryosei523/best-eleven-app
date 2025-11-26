@@ -24,15 +24,15 @@
         height: 110px;
         background-color: rgba(255, 255, 255, 0.2);
         border: 1px dashed #fff;
-        border-radius: 10px; /* 枠を角丸に変更 */
+        border-radius: 10px;
         margin: 0 10px;
         font-weight: bold;
         font-size: 0.7rem;
         cursor: pointer;
         transition: all 0.3s ease;
         display: flex;
-        flex-direction: column; /* 縦並び */
-        justify-content: center; /* 中央揃え */
+        flex-direction: column;
+        justify-content: center;
         align-items: center;
         position: relative;
         overflow: hidden;
@@ -52,18 +52,16 @@
         border: 2px solid gold;
     }
 
-    /* 選手画像（.player-img）のスタイル */
     .player-img {
-        width: 100%;
-        height: 80%;
+        width: 80px; /* ★枠に合わせて調整 */
+        height: 80px; /* ★枠に合わせて調整 */
         object-fit: cover;
-        border-radius: 8px;
+        border-radius: 8px; /* 枠に合わせて調整 */
         pointer-events: none;
     }
 
-    /* 選手名（.player-name-display）のスタイル */
     .player-name-display {
-        position: static; /* 通常の並び順に戻す */
+        position: static;
         text-align: center;
         font-size: 0.7rem;
         color: white;
@@ -75,22 +73,33 @@
         line-height: 1.2;
     }
     
-    #spin-button {
+    /* ▼▼▼ ボタンのスタイル調整 ▼▼▼ */
+    #spin-button, #save-team-button, #register-button, #login-button {
         background-color: #007bff;
         color: white;
         border: none;
         border-radius: 5px;
-        padding: 10px 20px;
+        padding: 8px 16px; /* スッキリさせる */
+        font-size: 1rem;
+        width: auto; /* 自動調整 */
+        min-width: 200px; /* 最低幅 */
+        margin: 10px auto; /* 中央寄せ */
+        display: block; /* ブロック要素にして中央寄せを有効化 */
         cursor: pointer;
-        font-size: 1.1rem;
         transition: background-color 0.3s ease;
     }
-    #spin-button:hover:not(:disabled) {
+    
+    #spin-button:hover:not(:disabled), #save-team-button:hover, #register-button:hover, #login-button:hover {
         background-color: #0056b3;
     }
     #spin-button:disabled {
         background-color: #6c757d;
         cursor: not-allowed;
+    }
+    
+    /* 保存ボタンは最初は非表示 */
+    #save-team-button {
+        display: none;
     }
     </style>
 </head>
@@ -102,31 +111,34 @@
     <!-- ▼▼▼ ログインフォーム ▼▼▼ -->
     <div id="auth-container" style="background-color: #f4f4f4; padding: 15px; border-radius: 8px; margin-bottom: 20px; color: #333;">
         
-        <!-- 新規登録 -->
         <div style="margin-bottom: 15px;">
         <h3>新規登録</h3>
         <input type="text" id="register-username" placeholder="ユーザー名" style="padding: 5px;">
         <input type="password" id="register-password" placeholder="パスワード" style="padding: 5px;">
-        <button id="register-button">登録</button>
+        <button id="register-button" style="display: inline-block; min-width: auto;">登録</button>
         </div>
         
-        <!-- ログイン -->
         <div>
         <h3>ログイン</h3>
         <input type="text" id="login-username" placeholder="ユーザー名" style="padding: 5px;">
         <input type="password" id="login-password" placeholder="パスワード" style="padding: 5px;">
-        <button id="login-button">ログイン</button>
+        <button id="login-button" style="display: inline-block; min-width: auto;">ログイン</button>
         </div>
 
-        <!-- メッセージ表示欄 -->
         <p id="auth-message" style="font-weight: bold; color: blue;"></p>
 
-    </div> <!-- ★★★ auth-container は「ここで」閉じます ★★★ -->
+    </div> <!-- ★★★ auth-container はここで閉じる！ ★★★ -->
     
-    <!-- ▼▼▼ マイページ機能（auth-containerの外に出しました） ▼▼▼ -->
-    <button id="my-page-button" style="display: none; padding: 10px; background-color: #17a2b8; color: white; border: none; border-radius: 5px; cursor: pointer; margin-bottom: 15px;">
+    <!-- ▼▼▼ マイページ＆ログアウト（auth-containerの外に出す！） ▼▼▼ -->
+    <div style="margin-bottom: 15px;">
+        <button id="my-page-button" style="display: none; padding: 10px; background-color: #17a2b8; color: white; border: none; border-radius: 5px; cursor: pointer; margin-right: 10px;">
         マイページを開く
-    </button>
+        </button>
+        <button id="logout-button" style="display: none; padding: 10px; background-color: #dc3545; color: white; border: none; border-radius: 5px; cursor: pointer;">
+        ログアウト
+        </button>
+    </div>
+
     <div id="my-teams-container" style="color: #333; background-color: #f9f9f9; padding: 10px; margin-top: 15px; border-radius: 8px;">
         <!-- ここに保存したチーム一覧が表示されます -->
     </div>
@@ -135,7 +147,8 @@
     <p>11個の枠が同時にルーレット！最高の1人を選び続けよう。</p>
 
     <!-- ピッチ -->
-    <div id="pitch">
+    <div id="pitch" style="position: relative; padding-bottom: 20px;">
+        
         <!-- FW -->
         <div class="row">
         <div class="player-slot" id="fw-center">FW</div>
@@ -158,18 +171,33 @@
         <div class="player-slot" id="df-center-right">DF</div>
         <div class="player-slot" id="df-right">DF</div>
         </div>
-        <!-- GK -->
-        <div class="row">
+
+        <!-- GK・監督・ロゴの列 -->
+        <div class="row" style="position: relative; margin-bottom: 0; height: 120px;">
+        
+        <!-- ★追加：監督（左端） -->
+        <div class="player-slot" id="manager" style="position: absolute; left: -20px; top: 0; border-color: #ffff00;">
+            Coach
+        </div>
+
+        <!-- GK（中央） -->
         <div class="player-slot" id="gk">GK</div>
+
+        <!-- ★追加：ロゴ（右端） -->
+        <div id="team-emblem" style="position: absolute; right: -20px; top: 0; width: 90px; height: 110px;">
+            <img src="https://www.nikkansports.com/soccer/japan/news/img/201711020000028-nsogp_0.jpg" 
+                style="width: 100%; height: 100%; object-fit: contain;">
+        </div>
+
         </div>
     </div> 
     
     <!-- ゲームコントローラー -->
     <div id="game-controls" style="margin-top: 2rem;">
-        <button id="spin-button" style="width: 100%; padding: 1rem; font-size: 1.2rem;" disabled>
+        <button id="spin-button" disabled>
         選手データを読み込み中...
         </button>
-        <button id="save-team-button" style="width: 100%; padding: 10px; margin-top: 10px; background-color: #28a745; color: white; display: none;">
+        <button id="save-team-button">
         このチームを保存する
         </button>
     </div>

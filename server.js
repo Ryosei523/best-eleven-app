@@ -33,33 +33,30 @@ app.use(session({
   cookie: { secure: false } // （ローカル開発用）
 }));
 
-// 4. APIの処理を「players.json」から「MySQL」に書き換える
 app.get('/api/players', (req, res) => {
-  
-  // "players"テーブルから全ての選手データを取得するSQLクエリ
-  const sql = 'SELECT * FROM players';
+  // playersテーブルに、positionsとclubsを結合するSQL
+  const sql = `
+    SELECT 
+      p.id, p.name, p.photo_url,
+      pos.position_name AS position,  -- position_id を名前に変換
+      c.club_name
+    FROM players p
+    JOIN positions pos ON p.position_id = pos.position_id
+    LEFT JOIN clubs c ON p.club_id = c.club_id
+  `;
 
   connection.query(sql, (err, results) => {
-    if (err) {
-      console.error('データの取得に失敗しました: ', err);
-      res.status(500).send('サーバーでエラーが発生しました');
-      return;
-    }
-
-    // ★重要：フロントエンドが使いやすいようにデータを整形
-    // データベースから取得したデータ(results)は平坦な配列です。
-    // これを、ポジション別にグループ分けしたオブジェクトに変換します。
+    // ... (エラー処理) ...
+    
+    // 整形処理 (playersByPositionを作る)
     const playersByPosition = {};
-
     results.forEach(player => {
-      const position = player.position; // "gk" や "df-right" など
-      if (!playersByPosition[position]) {
-        playersByPosition[position] = []; // 新しいポジションの配列を作成
-      }
-      playersByPosition[position].push(player); // 選手を該当の配列に追加
+      // SQLで取得した position_name ("gk"など) をキーにする
+      const pos = player.position; 
+      if (!playersByPosition[pos]) playersByPosition[pos] = [];
+      playersByPosition[pos].push(player);
     });
-
-    // 整形したデータ（players.jsonと同じ形式になったもの）をフロントエンドに返す
+    
     res.json(playersByPosition);
   });
 });
@@ -137,7 +134,7 @@ app.post('/api/save_team', (req, res) => {
     gk_player_id, df_right_player_id, df_center_right_player_id,
     df_center_left_player_id, df_left_player_id, dmf_right_player_id,
     dmf_left_player_id, amf_right_player_id, amf_center_player_id,
-    amf_left_player_id, fw_center_player_id
+    amf_left_player_id, fw_center_player_id, manager_id
   } = req.body;
 
   const sql = `
@@ -145,7 +142,7 @@ app.post('/api/save_team', (req, res) => {
     (user_id, gk_player_id, df_right_player_id, df_center_right_player_id, 
       df_center_left_player_id, df_left_player_id, dmf_right_player_id, 
       dmf_left_player_id, amf_right_player_id, amf_center_player_id, 
-      amf_left_player_id, fw_center_player_id) 
+      amf_left_player_id, fw_center_player_id,manager_id) 
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
   
@@ -154,7 +151,7 @@ app.post('/api/save_team', (req, res) => {
     gk_player_id, df_right_player_id, df_center_right_player_id,
     df_center_left_player_id, df_left_player_id, dmf_right_player_id,
     dmf_left_player_id, amf_right_player_id, amf_center_player_id,
-    amf_left_player_id, fw_center_player_id
+    amf_left_player_id, fw_center_player_id,manager_id
   ];
 
   connection.query(sql, values, (err, results) => {
@@ -205,7 +202,7 @@ app.get('/api/get_team_details/:team_id', async (req, res) => {
       team.gk_player_id, team.df_right_player_id, team.df_center_right_player_id,
       team.df_center_left_player_id, team.df_left_player_id, team.dmf_right_player_id,
       team.dmf_left_player_id, team.amf_right_player_id, team.amf_center_player_id,
-      team.amf_left_player_id, team.fw_center_player_id
+      team.amf_left_player_id, team.fw_center_player_id,manager_id
     ];
 
     // 3. playersテーブルから、その11人全員の「選手情報」を取得
@@ -220,6 +217,44 @@ app.get('/api/get_team_details/:team_id', async (req, res) => {
       // 11人の選手情報 ( [{name: '...'}, {name: '...'}, ...] ) を返す
       res.json({ success: true, players: players });
     });
+  });
+});
+
+app.post('/api/logout', (req, res) => {
+  req.session.destroy((err) => {
+    if (err) {
+      return res.status(500).json({ success: false, message: 'ログアウト失敗' });
+    }
+    res.json({ success: true, message: 'ログアウトしました' });
+  });
+});
+
+// ▼▼▼ 8. チーム削除API (/api/delete_team) ▼▼▼
+// =======================================================
+app.post('/api/delete_team', (req, res) => {
+  // ログインチェック
+  if (!req.session.userId) {
+    return res.status(401).json({ success: false, message: 'ログインしてください' });
+  }
+  
+  const userId = req.session.userId;
+  const { team_id } = req.body; // 削除したいチームのID
+
+  // 自分のチームだけ削除できるように、user_id も条件に含める
+  const sql = "DELETE FROM saved_teams WHERE team_id = ? AND user_id = ?";
+  
+  connection.query(sql, [team_id, userId], (err, result) => {
+    if (err) {
+      console.error('チーム削除エラー:', err);
+      return res.status(500).json({ success: false, message: '削除に失敗しました' });
+    }
+    
+    // 削除された行数が0なら、他人のチームを消そうとしたか、既にない
+    if (result.affectedRows === 0) {
+        return res.status(403).json({ success: false, message: '削除できませんでした（権限がないか、既に削除されています）' });
+    }
+
+    res.json({ success: true, message: 'チームを削除しました' });
   });
 });
 

@@ -2,60 +2,62 @@
 const spinButton = document.getElementById('spin-button');
 const playerSlots = document.querySelectorAll('.player-slot');
 const saveTeamButton = document.getElementById('save-team-button');
-const authMessage = document.getElementById('auth-message'); 
 // (マイページ機能で追加する要素)
 const myPageButton = document.getElementById('my-page-button'); 
 const myTeamsContainer = document.getElementById('my-teams-container');
+const logoutButton = document.getElementById('logout-button');
+// (認証機能で追加する要素)
+const authMessage = document.getElementById('auth-message'); 
 
 // --------- グローバル変数（ゲームの状態を管理） ---------
 let allPlayersData = {};
 let confirmedSlots = [];
 let tempPlayers = {};
-let currentGameState = 'ready_to_spin'; // 'ready_to_spin' | 'waiting_for_selection' | 'game_over'
+let currentGameState = 'ready_to_spin'; 
 let confirmedPlayerIds = {};
+
 // --------- 初期化：APIから選手データを取得 ---------
 fetch('/api/players')
-    .then(response => response.json())
-    .then(data => {
+  .then(response => response.json())
+  .then(data => {
     console.log('ポジション別の選手データを取得しました', data);
     allPlayersData = data;
     spinButton.textContent = 'ルーレットを回す';
     spinButton.disabled = false;
     // 初期のポジション名表示
     playerSlots.forEach(slot => {
-        const positionId = slot.id;
-        // idからポジション名を整形して表示 (例: fw-left -> FW)
-        slot.innerHTML = getDisplayPositionName(positionId);
+      const positionId = slot.id;
+      slot.innerHTML = getDisplayPositionName(positionId);
     });
-    })
-    .catch(error => {
+  })
+  .catch(error => {
     console.error('データの取得に失敗しました', error);
     spinButton.textContent = 'エラーが発生しました';
     spinButton.disabled = true;
-    });
+  });
 
-// --------- イベントリスナー ---------
+// --------- ゲーム進行のイベントリスナー ---------
 
 spinButton.addEventListener('click', () => {
-    if (currentGameState !== 'ready_to_spin') return;
-    
-    if (confirmedSlots.length === 11) {
+  if (currentGameState !== 'ready_to_spin') return;
+  
+  if (confirmedSlots.length === 12) {
     alert('ベストイレブンが完成しました！おめでとうございます！');
-    currentGameState = 'game_over'; // ゲーム終了状態に
+    currentGameState = 'game_over'; 
     spinButton.disabled = true;
     spinButton.textContent = 'ゲーム終了';
     return;
-    }
+  }
 
-    currentGameState = 'waiting_for_selection';
-    spinButton.textContent = '1人を選択してください...';
-    spinButton.disabled = true;
+  currentGameState = 'waiting_for_selection';
+  spinButton.textContent = '1人を選択してください...';
+  spinButton.disabled = true;
 
-    spinAllSlots();
+  spinAllSlots();
 });
 
 playerSlots.forEach(slot => {
-    slot.addEventListener('click', () => {
+  slot.addEventListener('click', () => {
     if (currentGameState !== 'waiting_for_selection') return;
 
     const positionId = slot.id;
@@ -65,108 +67,88 @@ playerSlots.forEach(slot => {
     
     // 選手を選択し、そのポジションを「確定」する
     selectPlayer(positionId);
-    });
+  });
 });
 
 // --------- コア関数 ---------
 
-/**
- * HTMLのidから表示用のポジション名を取得するヘルパー関数
- */
 function getDisplayPositionName(positionId) {
-    if (positionId === 'gk') return 'GK';
-    if (positionId.startsWith('df')) return 'DF';
-    if (positionId.startsWith('dmf')) return 'DMF'; // 守備的MF
-    if (positionId.startsWith('amf')) return 'AMF'; // 攻撃的MF
-    if (positionId.startsWith('fw')) return 'FW';
-    return '';
+  if (positionId === 'gk') return 'GK';
+  if (positionId.startsWith('df')) return 'DF';
+  if (positionId.startsWith('dmf')) return 'DMF'; 
+  if (positionId.startsWith('amf')) return 'AMF'; 
+  if (positionId.startsWith('fw')) return 'FW';
+  if (positionId === 'manager') return 'Coach';
+  return '';
 }
 
-/**
- * 未確定の全スロットをルーレットし、仮表示する関数
- */
 function spinAllSlots() {
-    tempPlayers = {}; 
+  tempPlayers = {}; 
 
-    playerSlots.forEach(slot => {
+  playerSlots.forEach(slot => {
     const positionId = slot.id;
 
     if (!confirmedSlots.includes(positionId)) {
-      // ルーレット中のアニメーション表示（簡易版）
-        let count = 0;
-        const candidates = allPlayersData[positionId];
-        if (!candidates || candidates.length === 0) {
+      let count = 0;
+      const candidates = allPlayersData[positionId];
+      if (!candidates || candidates.length === 0) {
         slot.innerHTML = `<div class="player-name-display" style="color:red;">選手なし</div>`;
         return;
-        }
+      }
 
-        const interval = setInterval(() => {
+      const interval = setInterval(() => {
         const randomIndex = Math.floor(Math.random() * candidates.length);
         const player = candidates[randomIndex];
         slot.innerHTML = `<img class="player-img" src="${player.photo_url}" alt="${player.name}">
-                            <div class="player-name-display">${player.name}</div>`;
+                          <div class="player-name-display">${player.name}</div>`;
         count++;
-        // 1秒間（100ms * 10回）回転したら止める
         if (count > 10) { 
-            clearInterval(interval);
-            // 最終的な選手を確定し仮表示
-            const finalRandomIndex = Math.floor(Math.random() * candidates.length);
-            const finalPlayer = candidates[finalRandomIndex];
-            tempPlayers[positionId] = finalPlayer;
-            slot.innerHTML = `<img class="player-img" src="${finalPlayer.photo_url}" alt="${finalPlayer.name}">
-                                <div class="player-name-display">${finalPlayer.name}</div>`;
-            slot.classList.add('ready-to-select'); // 選択可能状態のクラスを追加
+          clearInterval(interval);
+          const finalRandomIndex = Math.floor(Math.random() * candidates.length);
+          const finalPlayer = candidates[finalRandomIndex];
+          tempPlayers[positionId] = finalPlayer;
+          slot.innerHTML = `<img class="player-img" src="${finalPlayer.photo_url}" alt="${finalPlayer.name}">
+                            <div class="player-name-display">${finalPlayer.name}</div>`;
+          slot.classList.add('ready-to-select'); 
         }
-        }, 100);
+      }, 100);
     }
-    });
+  });
 }
 
-/**
- * 選手を1人選択し、他をリセットする関数
- * @param {string} positionId - 選択されたポジションのID (例: 'gk')
- */
 function selectPlayer(positionId) {
-  // 1. 選択した枠を「確定」状態にする
-    confirmedSlots.push(positionId);
-    const selectedSlot = document.getElementById(positionId);
-    const selectedPlayer = tempPlayers[positionId];
-    
-    confirmedPlayerIds[positionId + '_player_id'] = selectedPlayer.id;
-  // 確定表示
-    selectedSlot.innerHTML = `<img class="player-img" src="${selectedPlayer.photo_url}" alt="${selectedPlayer.name}">
+  confirmedSlots.push(positionId);
+  const selectedSlot = document.getElementById(positionId);
+  const selectedPlayer = tempPlayers[positionId];
+  
+  confirmedPlayerIds[positionId + '_player_id'] = selectedPlayer.id;
+
+  selectedSlot.innerHTML = `<img class="player-img" src="${selectedPlayer.photo_url}" alt="${selectedPlayer.name}">
                             <div class="player-name-display">${selectedPlayer.name}</div>`;
-    selectedSlot.classList.add('confirmed'); // 確定クラスを追加
-    selectedSlot.classList.remove('ready-to-select');
+  selectedSlot.classList.add('confirmed'); 
+  selectedSlot.classList.remove('ready-to-select');
 
-  // 2. 他のすべての「未確定」枠をリセットする
-    playerSlots.forEach(slot => {
+  playerSlots.forEach(slot => {
     const id = slot.id;
-    // 確定済み *でない* 枠だけをリセット
     if (!confirmedSlots.includes(id)) {
-        slot.innerHTML = getDisplayPositionName(id);
-        slot.classList.remove('ready-to-select');
-      // ↓↓↓ バグの原因だったインラインスタイル設定を削除 ↓↓↓
-      // slot.style.backgroundColor = ''; 
-      // slot.style.border = ''; 
+      slot.innerHTML = getDisplayPositionName(id);
+      slot.classList.remove('ready-to-select');
     }
-    });
+  });
 
-  // 3. ゲームの状態を「ルーレット待ち」に戻す
-    currentGameState = 'ready_to_spin';
-    spinButton.disabled = false;
-    
-    if (confirmedSlots.length === 11) {
+  currentGameState = 'ready_to_spin';
+  spinButton.disabled = false;
+  
+  if (confirmedSlots.length === 12) {
     spinButton.textContent = 'ベストイレブン完成！';
     currentGameState = 'game_over'; 
     saveTeamButton.style.display = 'block';
-    // ゲーム終了状態に
-    } else {
-    spinButton.textContent = `残り${11 - confirmedSlots.length}人 ルーレットを回す`;
-    }
+  } else {
+    spinButton.textContent = `残り${12 - confirmedSlots.length}人 ルーレットを回す`;
+  }
 }
 
-// --------- 認証機能のHTML要素を取得 ---------
+// --------- 認証機能 ---------
 const registerUsernameInput = document.getElementById('register-username');
 const registerPasswordInput = document.getElementById('register-password');
 const registerButton = document.getElementById('register-button');
@@ -175,12 +157,10 @@ const loginUsernameInput = document.getElementById('login-username');
 const loginPasswordInput = document.getElementById('login-password');
 const loginButton = document.getElementById('login-button');
 
-// --------- 新規登録ボタンのイベント ---------
 registerButton.addEventListener('click', async () => {
   const username = registerUsernameInput.value;
   const password = registerPasswordInput.value;
 
-  // サーバーの /api/register にデータを送信
   const response = await fetch('/api/register', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -188,15 +168,13 @@ registerButton.addEventListener('click', async () => {
   });
 
   const result = await response.json();
-  authMessage.textContent = result.message; // 結果を画面に表示
+  authMessage.textContent = result.message; 
 });
 
-// --------- ログインボタンのイベント ---------
 loginButton.addEventListener('click', async () => {
   const username = loginUsernameInput.value;
   const password = loginPasswordInput.value;
 
-  // サーバーの /api/login にデータを送信
   const response = await fetch('/api/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -204,25 +182,20 @@ loginButton.addEventListener('click', async () => {
   });
 
   const result = await response.json();
-  // authMessage.textContent = result.message; // ← 成功/失敗の両方で設定するので、ここで1回だけ設定するのが良い
 
   if (result.success) {
-    // ログインに成功したら
     console.log('ログイン成功！');
-    authMessage.textContent = result.message; // 「ようこそ、〇〇さん！」
-    myPageButton.style.display = 'block'; // マイページボタンを表示
-    document.getElementById('auth-container').style.display = 'none'; // ログインフォームを隠す
+    authMessage.textContent = result.message; 
+    myPageButton.style.display = 'inline-block'; 
+    logoutButton.style.display = 'inline-block'; 
+    document.getElementById('auth-container').style.display = 'none'; 
   } else {
-    // ログインに失敗したら
-    authMessage.textContent = result.message; // 「パスワードが違います」など
+    authMessage.textContent = result.message;
   }
-  // document.getElementById('auth-container').style.display = 'none'; // ← このコメントは不要
-}); // ← ★★★ 閉じる括弧 ); は、ここが正しい位置です ★★★
+});
 
+// --------- チーム保存機能 ---------
 saveTeamButton.addEventListener('click', async () => {
-  // 確定した11人の選手ID (confirmedPlayerIds) をサーバーに送る
-  
-  // サーバーが要求する形式に名前を合わせる
   const teamData = {
     gk_player_id: confirmedPlayerIds['gk_player_id'],
     df_right_player_id: confirmedPlayerIds['df-right_player_id'],
@@ -234,7 +207,8 @@ saveTeamButton.addEventListener('click', async () => {
     amf_right_player_id: confirmedPlayerIds['amf-right_player_id'],
     amf_center_player_id: confirmedPlayerIds['amf-center_player_id'],
     amf_left_player_id: confirmedPlayerIds['amf-left_player_id'],
-    fw_center_player_id: confirmedPlayerIds['fw-center_player_id']
+    fw_center_player_id: confirmedPlayerIds['fw-center_player_id'],
+    manager_id: confirmedPlayerIds['manager_player_id']
   };
 
   const response = await fetch('/api/save_team', {
@@ -244,21 +218,27 @@ saveTeamButton.addEventListener('click', async () => {
   });
 
   const result = await response.json();
-  alert(result.message); // 「チームが保存されました！」とアラート表示
-  saveTeamButton.disabled = true; // 2回押せないようにする
+  alert(result.message); 
+  saveTeamButton.disabled = true; 
 });
 
+// --------- マイページ機能 ---------
+function findPlayerName(positionKey, playerId) {
+  const playersInPosition = allPlayersData[positionKey];
+  if (!playersInPosition) return '不明';
+  const foundPlayer = playersInPosition.find(p => p.id === playerId);
+  return foundPlayer ? foundPlayer.name : '不明';
+}
+
 myPageButton.addEventListener('click', async () => {
-  // サーバーに /api/my_teams をリクエスト
   const response = await fetch('/api/my_teams');
-  const result = await response.json();
+  const result = await response.json(); // ★ここがエラーの原因でした（修正済み）
 
   if (!result.success) {
     alert(result.message);
     return;
   }
 
-  // 取得したチーム一覧(result.teams)を使ってHTMLを組み立てる
   myTeamsContainer.innerHTML = '<h3>保存したチーム一覧</h3>';
   
   if (result.teams.length === 0) {
@@ -266,60 +246,97 @@ myPageButton.addEventListener('click', async () => {
     return;
   }
 
-  // チームごとに「クリックできる」ボタンを作成
   result.teams.forEach(team => {
+    const gkName = findPlayerName('gk', team.gk_player_id);
+    const fwName = findPlayerName('fw-center', team.fw_center_player_id);
+
     myTeamsContainer.innerHTML += `
-      <div style="border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; cursor: pointer;"
-            onclick="loadTeam(${team.team_id})">
-        <p>チームID: ${team.team_id} (クリックして表示)</p>
+      <div style="border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; cursor: pointer; background: #fff;"
+          onclick="loadTeam(${team.team_id})">
+        <div style="font-weight: bold; color: #007bff;">チームID: ${team.team_id}</div>
+        <div style="font-size: 0.9rem; color: #555;">
+          GK: ${gkName} / FW: ${fwName}
+        </div>
+        <div style="font-size: 0.8rem; color: #888;">(クリックして配置する)</div>
       </div>
+      <button onclick="deleteTeam(${team.team_id})" 
+              style="background-color: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; font-size: 0.8rem; margin-bottom: 10px;">
+        削除
+      </button>
     `;
   });
 });
 
-/**
- * * チームIDをクリックしたときにサーバーから選手詳細を取得する関数
- */
 async function loadTeam(teamId) {
   const response = await fetch(`/api/get_team_details/${teamId}`);
   const result = await response.json();
 
   if (result.success) {
-    // 取得した11人の選手情報を使ってピッチに表示する
     displayTeamOnPitch(result.players);
   } else {
     alert(result.message);
   }
 }
 
-/**
- * * 11人の選手情報 (配列) をピッチに再現する関数
- */
 function displayTeamOnPitch(players) {
-  // 1. まず全スロットを初期状態（"GK", "FW"など）に戻す
   playerSlots.forEach(slot => {
     slot.innerHTML = getDisplayPositionName(slot.id);
     slot.classList.remove('confirmed');
     slot.style.border = '1px dashed #fff';
   });
 
-  // 2. 11人の選手をそれぞれのポジションに配置する
   players.forEach(player => {
-    const positionId = player.position; // "gk", "df-right" など
+    const positionId = player.position; 
     const slot = document.getElementById(positionId);
     
     if (slot) {
-      // 確定表示
       slot.innerHTML = `
         <img class="player-img" src="${player.photo_url}" alt="${player.name}">
         <div class="player-name-display">${player.name}</div>
       `;
-      slot.classList.add('confirmed'); // 確定スタイルを適用
+      slot.classList.add('confirmed'); 
     }
   });
 
-  // 3. ゲームのボタンを「完成状態」にする
   spinButton.textContent = 'ベストイレブン（保存済）';
   spinButton.disabled = true;
-  saveTeamButton.style.display = 'none'; // 保存ボタンを隠す
+  saveTeamButton.style.display = 'none'; 
+}
+
+// --------- ログアウト機能 ---------
+logoutButton.addEventListener('click', async () => {
+  const response = await fetch('/api/logout', { method: 'POST' });
+  const result = await response.json(); // ★ここがエラーの原因でした（修正済み）
+
+  if (result.success) {
+    alert(result.message);
+    window.location.reload(); 
+  } else {
+    alert('ログアウトに失敗しました');
+  }
+});
+/**
+ * チームを削除する関数
+ */
+async function deleteTeam(teamId) {
+  // 確認ダイアログを出す
+  if (!confirm('本当にこのチームを削除しますか？')) {
+    return;
+  }
+
+  const response = await fetch('/api/delete_team', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ team_id: teamId })
+  });
+
+  const result = await response.json();
+  
+  if (result.success) {
+    alert(result.message);
+    // マイページを再読み込みして、一覧を更新する
+    myPageButton.click(); 
+  } else {
+    alert(result.message);
+  }
 }
